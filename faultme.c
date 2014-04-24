@@ -1,17 +1,3 @@
-/* vim: set cino= fo=croql sw=8 ts=8 sts=0 noet cin fdm=syntax : */
-
-/**
- * \file
- *
- * Example \ref pink-simple-strace-linux.c "pink-simple-strace-linux.c" .
- **/
-
-/**
- * \example pink-simple-strace-linux.c
- *
- * Simple strace like program example written with pinktrace for Linux.
- **/
-
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -251,6 +237,11 @@ handle_syscall(struct child *son)
 	}
 }
 
+void print_usage() {
+  printf("Usage: faultme [-a pid | program [arguments ...]]");
+}
+
+
 int
 main(int argc, char **argv)
 {
@@ -265,7 +256,7 @@ main(int argc, char **argv)
 	  case 'a' : attach = atoi(optarg);
 	    break;
 
-	  default: //print_usage(); 
+	  default: print_usage(); 
 	    exit(EXIT_FAILURE);
 	  }
 	}
@@ -273,10 +264,7 @@ main(int argc, char **argv)
 	
 
 	/* Parse arguments */
-	/*if (argc < 2) {
-		fprintf(stderr, "Usage: %s program [argument...]\n", argv[0]);
-		return EXIT_FAILURE;
-		}*/
+
 	if(!attach) //if we need to fork, then fork to get a child.
 	  {
 	    /* Fork */
@@ -387,7 +375,5 @@ main(int argc, char **argv)
 		  break;
 	      }
 	      
-	      return exit_code;
-	   
-	  
+	      return exit_code;	  
 }

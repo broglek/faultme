@@ -1,5 +1,5 @@
 #!/bin/sh
 
 
-gcc -c $(pkg-config --cflags pinktrace) -o example.o example.c
-gcc -o example example.o $(pkg-config --libs pinktrace)
+gcc -c $(pkg-config --cflags pinktrace) -o faultme.o faultme.c
+gcc -o faultme faultme.o $(pkg-config --libs pinktrace)
