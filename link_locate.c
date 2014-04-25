@@ -83,12 +83,12 @@ unsigned long find_sym_in_tables(int pid, struct link_map *map, char *sym_name, 
     read_data(pid, symtab + (i * sizeof(Elf64_Sym)), sym,
 	      sizeof(Elf64_Sym));
     i++;
-    if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
-      continue;
+    //if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
+    //  continue;
 
     /* read symbol name from the string table */
     str = read_str(pid, strtab + sym->st_name, 32);
-    
+    printf("%s\n", str);
     /* compare it with our symbol*/
     if (strcmp(str, sym_name) == 0) {
       printf("\nSuccess: got it\n");

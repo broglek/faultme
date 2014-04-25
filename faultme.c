@@ -301,7 +301,12 @@ main(int argc, char **argv)
 	//This becomes straightline code now :)
 	      waitpid(son.pid, &status, 0);
 	      struct link_map *map = locate_linkmap(son.pid);
-	      
+	      unsigned long symtab;
+	      unsigned long strtab;
+	      int nchains;
+
+	      resolv_tables(son.pid, map, &symtab, &strtab, &nchains);
+	      unsigned long addr = find_sym_in_tables(son.pid, map, "main", symtab, strtab, nchains);
 	      event = pink_event_decide(status);
 	      assert(event == PINK_EVENT_STOP);
 	      
