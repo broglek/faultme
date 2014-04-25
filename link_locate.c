@@ -1,7 +1,7 @@
 #include "link_locate.h"
 #include <stdlib.h>
 #include <pinktrace/pink.h>
-
+#include <stdio.h>
 
 
 struct link_map *locate_linkmap(int pid)
@@ -12,11 +12,10 @@ struct link_map *locate_linkmap(int pid)
   Elf64_Word got;
   struct link_map *l = malloc(sizeof(struct link_map));
   unsigned long phdr_addr, dyn_addr, map_addr;
-
   //Read ELF Header
   read_data(pid, 0x00400000, ehdr, sizeof(Elf64_Ehdr));
-  phdr_addr = 0x00400000 + ehdr->e_phoff;
-
+  //phdr_addr = ehdr + ehdr->e_phoff;
+  phdr_addr = 0x00400000 + sizeof(Elf64_Ehdr);
   //Read Program Header Table start
   read_data(pid, phdr_addr, phdr, sizeof(Elf64_Phdr));
 
@@ -72,4 +71,31 @@ void resolv_tables(int pid, struct link_map *map, unsigned long *symtab, unsigne
     read_data(pid, addr, dyn, sizeof(Elf64_Dyn));
   }
   free(dyn);
+}
+
+unsigned long find_sym_in_tables(int pid, struct link_map *map, char *sym_name, unsigned long symtab,
+                                 unsigned long strtab, int nchains)
+{
+  Elf64_Sym *sym = malloc(sizeof(Elf64_Sym));
+  char *str;
+  int i = 0;
+  while (i < nchains) {
+    read_data(pid, symtab + (i * sizeof(Elf64_Sym)), sym,
+	      sizeof(Elf64_Sym));
+    i++;
+    if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
+      continue;
+
+    /* read symbol name from the string table */
+    str = read_str(pid, strtab + sym->st_name, 32);
+    
+    /* compare it with our symbol*/
+    if (strcmp(str, sym_name) == 0) {
+      printf("\nSuccess: got it\n");
+      return (map->l_addr + sym->st_value);
+    }
+  }
+  /* no symbol found, return 0 */
+  printf("\nSorry, No such sym %s\n", sym_name);
+  return 0;
 }

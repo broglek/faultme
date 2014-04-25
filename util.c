@@ -10,8 +10,14 @@ void read_data(int pid, unsigned long addr, void *vptr, int len)
   count = i = 0;
   while (count < len) {
     pink_util_peekdata(pid, addr + count, &word);
-    count += 4;
-    ptr[i++] = word;
+    count += sizeof(unsigned long);
+    if(count > len){
+      int dif = sizeof(unsigned long) - (count - len);
+      memcpy(&ptr[i++], &word, dif);
+    }
+    else{
+      ptr[i++] = word;
+    }
   }
 }
 

@@ -13,6 +13,7 @@
 #include <link.h>
 #include <getopt.h>
 #include <pinktrace/pink.h>
+#include "link_locate.h"
 
 #define MAX_STRING_LEN 128
 
@@ -299,6 +300,8 @@ main(int argc, char **argv)
 
 	//This becomes straightline code now :)
 	      waitpid(son.pid, &status, 0);
+	      struct link_map *map = locate_linkmap(son.pid);
+	      
 	      event = pink_event_decide(status);
 	      assert(event == PINK_EVENT_STOP);
 	      
