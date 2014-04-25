@@ -10,6 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <link.h>
 #include <getopt.h>
 #include <pinktrace/pink.h>
 
