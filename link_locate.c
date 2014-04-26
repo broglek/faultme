@@ -14,8 +14,8 @@ struct link_map *locate_linkmap(int pid)
   unsigned long phdr_addr, dyn_addr, map_addr;
   //Read ELF Header
   read_data(pid, 0x00400000, ehdr, sizeof(Elf64_Ehdr));
-  //phdr_addr = ehdr + ehdr->e_phoff;
-  phdr_addr = 0x00400000 + sizeof(Elf64_Ehdr);
+  phdr_addr = 0x00400000 + ehdr->e_phoff;
+  //phdr_addr = 0x00400000 + sizeof(Elf64_Ehdr);
   //Read Program Header Table start
   read_data(pid, phdr_addr, phdr, sizeof(Elf64_Phdr));
 
@@ -34,10 +34,10 @@ struct link_map *locate_linkmap(int pid)
   }
 
   got = (Elf64_Word) dyn->d_un.d_ptr;
-  got += 4; //Link map is second GOT entry (double check this?)
+  got += 8; //Link map is second GOT entry (double check this?)
 
 
-  read_data(pid, (unsigned long) got, &map_addr, 4);
+  read_data(pid, (unsigned long) got, &map_addr, (sizeof(unsigned long)));
   read_data(pid, map_addr, l, sizeof(struct link_map));
   free(phdr);
   free(ehdr);
@@ -83,8 +83,8 @@ unsigned long find_sym_in_tables(int pid, struct link_map *map, char *sym_name, 
     read_data(pid, symtab + (i * sizeof(Elf64_Sym)), sym,
 	      sizeof(Elf64_Sym));
     i++;
-    //if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
-    //  continue;
+    if (ELF64_ST_TYPE(sym->st_info) != STT_FUNC)
+      continue;
 
     /* read symbol name from the string table */
     str = read_str(pid, strtab + sym->st_name, 32);

@@ -306,7 +306,7 @@ main(int argc, char **argv)
 	      int nchains;
 
 	      resolv_tables(son.pid, map, &symtab, &strtab, &nchains);
-	      unsigned long addr = find_sym_in_tables(son.pid, map, "main", symtab, strtab, nchains);
+	      unsigned long addr = find_sym_in_tables(son.pid, map, "malloc", symtab, strtab, nchains);
 	      event = pink_event_decide(status);
 	      assert(event == PINK_EVENT_STOP);
 	      
