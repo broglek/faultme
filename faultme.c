@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
+#include <sys/personality.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -284,6 +285,7 @@ main(int argc, char **argv)
 	      kill(getpid(), SIGSTOP);
 	      
 	      //++argv;
+	      personality(ADDR_NO_RANDOMIZE);
 	      execvp(argv[optind], &argv[optind]);
 	      perror("execvp");
 	      _exit(-1);
@@ -300,13 +302,12 @@ main(int argc, char **argv)
 
 	//This becomes straightline code now :)
 	      waitpid(son.pid, &status, 0);
-	      struct link_map *map = locate_linkmap(son.pid);
 	      unsigned long symtab;
 	      unsigned long strtab;
 	      int nchains;
 
-	      resolv_tables(son.pid, map, &symtab, &strtab, &nchains);
-	      unsigned long addr = find_sym_in_tables(son.pid, map, "malloc", symtab, strtab, nchains);
+	      //	      unsigned long addr = find_sym_in_tables(son.pid, map, "malloc", symtab, strtab, nchains);
+	      //printf("Address %x\n", addr);
 	      event = pink_event_decide(status);
 	      assert(event == PINK_EVENT_STOP);
 	      
@@ -325,6 +326,13 @@ main(int argc, char **argv)
 	      
 	      son.dead = son.insyscall = false;
 	      sig = exit_code = 0;
+
+
+	      struct link_map *map = locate_linkmap(son.pid);
+	      resolv_tables(son.pid, map, &symtab, &strtab, &nchains);
+	      unsigned long addr = find_sym_in_tables(son.pid, map, "malloc", symtab, strtab, nchains);
+
+
 	      for (;;) {
 		/* At this point the traced child is stopped and needs
 		 * to be resumed.
@@ -345,9 +353,11 @@ main(int argc, char **argv)
 		event = pink_event_decide(status);
 		switch (event) {
 		case PINK_EVENT_SYSCALL:
+
 		  handle_syscall(&son);
 		  break;
 		  break;
+
 		case PINK_EVENT_EXEC:
 		  /* Update bitness */
 		  son.bitness = pink_bitness_get(son.pid);
@@ -356,6 +366,7 @@ main(int argc, char **argv)
 		  else
 		    printf(" (Updating the bitness of child %i to %s mode)\n",
 			   son.pid, pink_bitness_name(son.bitness));
+
 		  break;
 		case PINK_EVENT_GENUINE:
 		case PINK_EVENT_UNKNOWN:
@@ -365,9 +376,11 @@ main(int argc, char **argv)
 		  sig = WSTOPSIG(status);
 		  break;
 		case PINK_EVENT_EXIT_GENUINE:
+
 		  exit_code = WEXITSTATUS(status);
 		  printf("Child %i exited normally with return code %d\n",
 			 son.pid, exit_code);
+
 		  son.dead = true;
 		  break;
 		case PINK_EVENT_EXIT_SIGNAL:

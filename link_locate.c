@@ -33,6 +33,7 @@ struct link_map *locate_linkmap(int pid)
 	      sizeof(Elf64_Dyn), dyn, sizeof(Elf64_Dyn));
   }
 
+  //got = dyn->d_ptr;
   got = (Elf64_Word) dyn->d_un.d_ptr;
   got += 8; //Link map is second GOT entry (double check this?)
 
@@ -88,7 +89,7 @@ unsigned long find_sym_in_tables(int pid, struct link_map *map, char *sym_name, 
 
     /* read symbol name from the string table */
     str = read_str(pid, strtab + sym->st_name, 32);
-    printf("%s\n", str);
+    printf("%s %x\n", str, sym->st_value);
     /* compare it with our symbol*/
     if (strcmp(str, sym_name) == 0) {
       printf("\nSuccess: got it\n");
