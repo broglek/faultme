@@ -265,11 +265,9 @@ main(int argc, char **argv)
 	}
 
 	
-
+	int x = 0;
 	/* Parse arguments */
-
-	if(!attach) //if we need to fork, then fork to get a child.
-	  {
+	while (x < 5){
 	    /* Fork */
 	    if ((son.pid = fork()) < 0) {
 	      perror("fork");
@@ -290,16 +288,8 @@ main(int argc, char **argv)
 	      perror("execvp");
 	      _exit(-1);
 	    }
-	  }
-	else {  //If we attach
-	  
-	  if(!pink_trace_attach(attach)){
-	    perror("pink_trace_attach");
-	    _exit(EXIT_FAILURE);
-	  }
-	  son.pid = attach;
-	}
 
+	printf("Hello\n");
 	//This becomes straightline code now :)
 	      waitpid(son.pid, &status, 0);
 	      unsigned long symtab;
@@ -396,6 +386,7 @@ main(int argc, char **argv)
 		if (son.dead)
 		  break;
 	      }
-	      
+	      x++;
+	}	      
 	      return exit_code;	  
 }
