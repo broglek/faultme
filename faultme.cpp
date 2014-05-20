@@ -244,8 +244,7 @@ handle_syscall(struct child *son)
 		 * the appropriate decoder. */
 		son->insyscall = true;
 		string res = get_callchain_id(son->pid);
-		if(!strcmp(scname, "write"))
-		  callsites.insert(res);
+		callsites.insert(res);
 		
 		if (!scname)
 			printf("%ld()", scno);
