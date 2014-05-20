@@ -232,6 +232,9 @@ handle_syscall(struct child *son)
 	if (son->insyscall) {
 		/* Exiting the system call, print the
 		 * return value. */
+
+	  
+		uintptr_t res = get_return_address(son->pid);
 		son->insyscall = false;
 		fputc(' ', stdout);
 		print_ret(son->pid);
@@ -253,8 +256,6 @@ handle_syscall(struct child *son)
 		else
 			printf("%s()", scname);
 
-		
-		uintptr_t res = get_return_address(son->pid);
 	}
 }
 
