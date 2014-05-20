@@ -89,14 +89,13 @@ unsigned long find_sym_in_tables(int pid, struct link_map *map, const char *sym_
 
     /* read symbol name from the string table */
     str = read_str(pid, strtab + sym->st_name, 32);
-    printf("%s %lx\n", str, sym->st_value);
     /* compare it with our symbol*/
     if (strcmp(str, sym_name) == 0) {
-      printf("\nSuccess: got it\n");
+      //printf("\nSuccess: got it\n");
       return (map->l_addr + sym->st_value);
     }
   }
   /* no symbol found, return 0 */
-  printf("\nSorry, No such sym %s\n", sym_name);
+  //printf("\nSorry, No such sym %s\n", sym_name);
   return 0;
 }

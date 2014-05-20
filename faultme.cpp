@@ -322,7 +322,6 @@ main(int argc, char **argv)
 	      _exit(-1);
 	    }
 
-	printf("Hello\n");
 	//This becomes straightline code now :)
 	      waitpid(son.pid, &status, 0);
 	      unsigned long symtab;
@@ -421,6 +420,6 @@ main(int argc, char **argv)
 	      }
 	      x++;
 	}	      
-	printf("Had %ld unique callsites for write\n", callsites.size());
+	printf("Had %ld unique callsites\n", callsites.size());
 	return exit_code;	  
 }
