@@ -2,6 +2,7 @@
 #define Link_Locate
 
 #include <link.h>
+#include "util.h"
 
 struct link_map *locate_linkmap(int pid);
 void resolv_tables(int pid, struct link_map *map, unsigned long *symtab, unsigned long *strtab, int *nchains);

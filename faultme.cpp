@@ -16,6 +16,12 @@
 #include <pinktrace/pink.h>
 #include "link_locate.h"
 
+#include <iostream>
+#include <fstream>
+#include <list>
+#include <string.h>
+using namespace std;
+
 #define MAX_STRING_LEN 128
 
 struct child {
@@ -24,6 +30,9 @@ struct child {
 	bool insyscall;
 	bool dead;
 };
+
+
+list<string> syscalls;
 
 /* Utility functions */
 static void
@@ -151,7 +160,7 @@ decode_socketcall(pid_t pid, pink_bitness_t bitness, const char *scname)
 	}
 
 	if (subcall > 0) {
-		subname = pink_name_socket_subcall(subcall);
+	  subname = pink_name_socket_subcall((pink_socket_subcall_t)subcall);
 		if (!(!strcmp(subname, "bind") || !strcmp(subname, "connect"))) {
 			/* Print the name only */
 			printf("%s()", subname);
@@ -251,12 +260,12 @@ main(int argc, char **argv)
 	int sig, status, exit_code;
 	pink_event_t event;
 	struct child son;
-	int attach = 0;
+	char *syscall_file = NULL;
 	int option = 0;
 
-	while ((option = getopt(argc, argv,"a:")) != -1) {
+	while ((option = getopt(argc, argv,"s:")) != -1) {
 	  switch (option) {
-	  case 'a' : attach = atoi(optarg);
+	  case 's' : syscall_file = optarg;
 	    break;
 
 	  default: print_usage(); 
@@ -266,6 +275,20 @@ main(int argc, char **argv)
 
 	
 	int x = 0;
+	
+	if(syscall_file){
+	  string line;
+	  ifstream infile (syscall_file);
+	  if(infile.is_open()){
+	    while(getline(infile, line)){
+	      syscalls.push_back(line);
+	    }
+	    infile.close();
+	  }
+	  printf("syscall from file first is %s", syscalls.front().c_str());
+	}
+
+
 	/* Parse arguments */
 	while (x < 5){
 	    /* Fork */
