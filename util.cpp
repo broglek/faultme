@@ -14,6 +14,9 @@
 
 #include "openssl/md5.h"
 
+using namespace std;
+
+
 void read_data(int pid, unsigned long addr, void *vptr, int len)
 {
   int i, count;
@@ -40,7 +43,7 @@ char *read_str(int pid, unsigned long addr, int len)
   return ret;
 }
 
-uintptr_t get_return_address(int pid)
+string get_return_address(int pid)
 {
 
 
@@ -75,8 +78,8 @@ uintptr_t get_return_address(int pid)
     sprintf(&md5string[i*2], "%02x", (unsigned int)hash[i]);
   // *apparently* PTRACE_GETREGS on x64 
   // returns more data than a struct pt_regs can handle :/
-  // THANKS PTRACE.
+  // THANKS PTRACE.  Never forget.
 
   printf("Hashes to %s\n", md5string);
-  return 0;
+  return string(md5string);
 }
