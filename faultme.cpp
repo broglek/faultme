@@ -33,7 +33,7 @@ struct child {
 
 
 set<string> syscalls;
-set<void *> callsites;
+set<string> callsites;
 
 /* Utility functions */
 static void
@@ -234,7 +234,6 @@ handle_syscall(struct child *son)
 		 * return value. */
 
 	  
-		string res = get_callchain_id(son->pid);
 		son->insyscall = false;
 		fputc(' ', stdout);
 		print_ret(son->pid);
@@ -244,6 +243,9 @@ handle_syscall(struct child *son)
 		/* Get the system call number and call
 		 * the appropriate decoder. */
 		son->insyscall = true;
+		string res = get_callchain_id(son->pid);
+		if(!strcmp(scname, "write"))
+		  callsites.insert(res);
 		
 		if (!scname)
 			printf("%ld()", scno);
@@ -420,5 +422,6 @@ main(int argc, char **argv)
 	      }
 	      x++;
 	}	      
-	      return exit_code;	  
+	printf("Had %ld unique callsites for write\n", callsites.size());
+	return exit_code;	  
 }
