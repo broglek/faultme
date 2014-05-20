@@ -56,36 +56,9 @@ uintptr_t get_return_address(int pid)
       printf ("ip=%016lx sp=%016lx\n", ip, sp);
     }
   while (unw_step (&cursor) > 0);
-
+  _UPT_destroy(upt_info);
   // *apparently* PTRACE_GETREGS on x64 
   // returns more data than a struct pt_regs can handle :/
   // THANKS PTRACE.
-  struct user_regs_struct *regs = (struct user_regs_struct *) malloc(sizeof(struct user_regs_struct));
-  if(!pink_util_get_regs(pid, regs)){
-    perror("ptrace couldn't get registers\n");
-    free(regs);
-    exit(0);
-  }
-
-  //printf("rip seems to be: %lx\n", regs->rip);
-  printf("rbp seems to be: %llx\n", regs->rbp);
-  uintptr_t rbp;
-  rbp = ptrace(PTRACE_PEEKUSER, pid, RBP * 8, 0);
-  printf("other rbp seems to be: %llx\n", rbp);
-  
-  uintptr_t ret;
-  if(!pink_util_peekdata(pid, (regs->rbp), &ret)){ printf("%s", strerror(errno));}
-  uintptr_t ret2;
-  printf("ret addr seems to be: %lx\n", ret);
-  
-  if(!pink_util_peekdata(pid, ret, &ret2)){printf("%s", strerror(errno));}
-  printf("ret2 addr seems to be: %lx\n", ret2);
-  uintptr_t ret3;
-  pink_util_peekdata(pid, (ret2), &ret3);
-  printf("ret3 addr seems to be: %lx\n", ret3);
-  uintptr_t ret4;
-  pink_util_peekdata(pid, (ret3), &ret4);
-  printf("ret4 addr seems to be: %lx\n", ret4);
-  free(regs);
-  return ret;
+  return 0;
 }
