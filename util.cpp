@@ -12,6 +12,8 @@
 #include <sys/reg.h>
 #include <sys/ptrace.h>
 
+#include "openssl/sha.h"
+
 void read_data(int pid, unsigned long addr, void *vptr, int len)
 {
   int i, count;
@@ -49,10 +51,18 @@ uintptr_t get_return_address(int pid)
 
   unw_init_remote(&cursor, aspace, upt_info);
 
+
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+
+
+
   do
     {
       unw_get_reg(&cursor, UNW_REG_IP, &ip);
       unw_get_reg(&cursor, UNW_REG_SP, &sp);
+      SHA256_Update(&sha256, ip, sizeof(unw_word_t));
       printf ("ip=%016lx sp=%016lx\n", ip, sp);
     }
   while (unw_step (&cursor) > 0);
