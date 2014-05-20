@@ -1,6 +1,9 @@
 #include "util.h"
+#include <asm/ptrace.h>
 #include <pinktrace/pink.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <err.h>
 
 void read_data(int pid, unsigned long addr, void *vptr, int len)
 {
@@ -26,4 +29,21 @@ char *read_str(int pid, unsigned long addr, int len)
   char *ret = (char *) calloc(32, sizeof(char));
   read_data(pid, addr, ret, len);
   return ret;
+}
+
+uintptr_t get_return_address(int pid)
+{
+  // *apparently* PTRACE_GETREGS on x64 
+  // returns more data than a struct pt_regs can handle :/
+  // THANKS PTRACE.
+  struct pt_regs *regs = (struct pt_regs *) malloc(2 * sizeof(struct pt_regs));
+  if(!pink_util_get_regs(pid, regs)){
+    perror("ptrace couldn't get registers\n");
+    free(regs);
+    exit(0);
+  }
+  
+  printf("rbp seems to be: %lx\n", regs->rbp);
+  free(regs);
+  return regs->rbp;
 }

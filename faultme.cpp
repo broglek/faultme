@@ -223,7 +223,6 @@ handle_syscall(struct child *son)
 	}
 
 	scname = pink_name_syscall(scno, son->bitness);
-	
 	if(!syscalls.empty() && !syscalls.count(scname)){
 	  return;
 	}
@@ -253,6 +252,9 @@ handle_syscall(struct child *son)
 			decode_socketcall(son->pid, son->bitness, scname);
 		else
 			printf("%s()", scname);
+
+		
+		uintptr_t res = get_return_address(son->pid);
 	}
 }
 
