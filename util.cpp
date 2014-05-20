@@ -12,7 +12,7 @@
 #include <sys/reg.h>
 #include <sys/ptrace.h>
 
-#include "openssl/sha.h"
+#include "openssl/md5.h"
 
 void read_data(int pid, unsigned long addr, void *vptr, int len)
 {
@@ -52,9 +52,9 @@ uintptr_t get_return_address(int pid)
   unw_init_remote(&cursor, aspace, upt_info);
 
 
-  unsigned char hash[SHA256_DIGEST_LENGTH];
-  SHA256_CTX sha256;
-  SHA256_Init(&sha256);
+  unsigned char hash[MD5_DIGEST_LENGTH];
+  MD5_CTX md5;
+  MD5_Init(&md5);
 
 
 
@@ -62,13 +62,21 @@ uintptr_t get_return_address(int pid)
     {
       unw_get_reg(&cursor, UNW_REG_IP, &ip);
       unw_get_reg(&cursor, UNW_REG_SP, &sp);
-      SHA256_Update(&sha256, ip, sizeof(unw_word_t));
+      MD5_Update(&md5, &ip, sizeof(unw_word_t));
       printf ("ip=%016lx sp=%016lx\n", ip, sp);
     }
   while (unw_step (&cursor) > 0);
   _UPT_destroy(upt_info);
+
+  MD5_Final(hash, &md5);
+
+  char md5string[33];
+  for(int i = 0; i < 16; ++i)
+    sprintf(&md5string[i*2], "%02x", (unsigned int)hash[i]);
   // *apparently* PTRACE_GETREGS on x64 
   // returns more data than a struct pt_regs can handle :/
   // THANKS PTRACE.
+
+  printf("Hashes to %s\n", md5string);
   return 0;
 }
