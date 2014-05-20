@@ -44,6 +44,9 @@ uintptr_t get_return_address(int pid)
   }
   
   printf("rbp seems to be: %lx\n", regs->rbp);
+  uintptr_t ret;
+  pink_util_peekdata(pid, (regs->rbp) + sizeof(uintptr_t), &ret);
   free(regs);
-  return regs->rbp;
+  printf("ret addr seems to be: %lx\n", ret);
+  return ret;
 }
