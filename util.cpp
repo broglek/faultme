@@ -43,7 +43,7 @@ char *read_str(int pid, unsigned long addr, int len)
   return ret;
 }
 
-string get_return_address(int pid)
+string get_callchain_id(int pid)
 {
 
 

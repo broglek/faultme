@@ -8,6 +8,6 @@ using namespace std;
 
 void read_data(int pid, unsigned long addr, void *vptr, int len);
 char *read_str(int pid, unsigned long addr, int len);
-string get_return_address(int pid);
+string get_callchain_id(int pid);
 
 #endif

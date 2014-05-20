@@ -234,7 +234,7 @@ handle_syscall(struct child *son)
 		 * return value. */
 
 	  
-		string res = get_return_address(son->pid);
+		string res = get_callchain_id(son->pid);
 		son->insyscall = false;
 		fputc(' ', stdout);
 		print_ret(son->pid);
