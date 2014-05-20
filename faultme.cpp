@@ -33,6 +33,7 @@ struct child {
 
 
 set<string> syscalls;
+set<void *> callsites;
 
 /* Utility functions */
 static void
