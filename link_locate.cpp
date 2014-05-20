@@ -6,11 +6,11 @@
 
 struct link_map *locate_linkmap(int pid)
 {
-  Elf64_Ehdr *ehdr = malloc(sizeof(Elf64_Ehdr));
-  Elf64_Phdr *phdr = malloc(sizeof(Elf64_Phdr));
-  Elf64_Dyn *dyn = malloc(sizeof(Elf64_Dyn));
+  Elf64_Ehdr *ehdr = (Elf64_Ehdr *) malloc(sizeof(Elf64_Ehdr));
+  Elf64_Phdr *phdr = (Elf64_Phdr *) malloc(sizeof(Elf64_Phdr));
+  Elf64_Dyn *dyn = (Elf64_Dyn *) malloc(sizeof(Elf64_Dyn));
   Elf64_Word got;
-  struct link_map *l = malloc(sizeof(struct link_map));
+  struct link_map *l = (struct link_map *) malloc(sizeof(struct link_map));
   unsigned long phdr_addr, dyn_addr, map_addr;
   //Read ELF Header
   read_data(pid, 0x00400000, ehdr, sizeof(Elf64_Ehdr));
@@ -48,7 +48,7 @@ struct link_map *locate_linkmap(int pid)
 
 void resolv_tables(int pid, struct link_map *map, unsigned long *symtab, unsigned long *strtab, int *nchains)
 {
-  Elf64_Dyn *dyn = malloc(sizeof(Elf64_Dyn));
+  Elf64_Dyn *dyn = (Elf64_Dyn *) malloc(sizeof(Elf64_Dyn));
   unsigned long addr;
   addr = (unsigned long) map->l_ld;
   read_data(pid, addr, dyn, sizeof(Elf64_Dyn));
@@ -74,10 +74,10 @@ void resolv_tables(int pid, struct link_map *map, unsigned long *symtab, unsigne
   free(dyn);
 }
 
-unsigned long find_sym_in_tables(int pid, struct link_map *map, char *sym_name, unsigned long symtab,
+unsigned long find_sym_in_tables(int pid, struct link_map *map, const char *sym_name, unsigned long symtab,
                                  unsigned long strtab, int nchains)
 {
-  Elf64_Sym *sym = malloc(sizeof(Elf64_Sym));
+  Elf64_Sym *sym = (Elf64_Sym *) malloc(sizeof(Elf64_Sym));
   char *str;
   int i = 0;
   while (i < nchains) {
@@ -89,7 +89,7 @@ unsigned long find_sym_in_tables(int pid, struct link_map *map, char *sym_name, 
 
     /* read symbol name from the string table */
     str = read_str(pid, strtab + sym->st_name, 32);
-    printf("%s %x\n", str, sym->st_value);
+    printf("%s %lx\n", str, sym->st_value);
     /* compare it with our symbol*/
     if (strcmp(str, sym_name) == 0) {
       printf("\nSuccess: got it\n");

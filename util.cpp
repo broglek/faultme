@@ -23,7 +23,7 @@ void read_data(int pid, unsigned long addr, void *vptr, int len)
 
 char *read_str(int pid, unsigned long addr, int len)
 {
-  char *ret = calloc(32, sizeof(char));
+  char *ret = (char *) calloc(32, sizeof(char));
   read_data(pid, addr, ret, len);
   return ret;
 }
