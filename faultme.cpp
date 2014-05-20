@@ -18,7 +18,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <list>
+#include <set>
 #include <string.h>
 using namespace std;
 
@@ -32,7 +32,7 @@ struct child {
 };
 
 
-list<string> syscalls;
+set<string> syscalls;
 
 /* Utility functions */
 static void
@@ -216,6 +216,16 @@ handle_syscall(struct child *son)
 	long scno;
 	const char *scname;
 
+	if (!pink_util_get_syscall(son->pid, son->bitness, &scno)) {
+	  perror("pink_util_get_syscall");
+	  return;
+	}
+
+	scname = pink_name_syscall(scno, son->bitness);
+	
+	if(!syscalls.empty() && !syscalls.count(scname)){
+	  return;
+	}
 	/* We get this event twice, one at entering a
 	 * system call and one at exiting a system
 	 * call. */
@@ -231,11 +241,7 @@ handle_syscall(struct child *son)
 		/* Get the system call number and call
 		 * the appropriate decoder. */
 		son->insyscall = true;
-		if (!pink_util_get_syscall(son->pid, son->bitness, &scno)) {
-			perror("pink_util_get_syscall");
-			return;
-		}
-		scname = pink_name_syscall(scno, son->bitness);
+		
 		if (!scname)
 			printf("%ld()", scno);
 		else if (!strcmp(scname, "open"))
@@ -281,11 +287,10 @@ main(int argc, char **argv)
 	  ifstream infile (syscall_file);
 	  if(infile.is_open()){
 	    while(getline(infile, line)){
-	      syscalls.push_back(line);
+	      syscalls.insert(line);
 	    }
 	    infile.close();
 	  }
-	  printf("syscall from file first is %s", syscalls.front().c_str());
 	}
 
 
