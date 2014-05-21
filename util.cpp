@@ -60,15 +60,15 @@ string get_callchain_id(int pid)
   MD5_Init(&md5);
 
 
-
+  int rr = 0;
   do
     {
       unw_get_reg(&cursor, UNW_REG_IP, &ip);
       unw_get_reg(&cursor, UNW_REG_SP, &sp);
       MD5_Update(&md5, &ip, sizeof(unw_word_t));
-      printf ("ip=%016lx sp=%016lx\n", ip, sp);
+      //printf ("ip=%016lx sp=%016lx\n", ip, sp);
     }
-  while (unw_step (&cursor) > 0);
+  while (rr = unw_step (&cursor) > 0);
   _UPT_destroy(upt_info);
 
   MD5_Final(hash, &md5);

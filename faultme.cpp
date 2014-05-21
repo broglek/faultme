@@ -229,6 +229,8 @@ handle_syscall(struct child *son)
 
 	string res = get_callchain_id(son->pid);
 	if(callsites.count(res) && !son->insyscall){
+	 
+	  printf("%s Seen it before\n", scname);
 	  return 0;
 	}
 	callsites.insert(res);
@@ -245,7 +247,7 @@ handle_syscall(struct child *son)
 		fputc(' ', stdout);
 		print_ret(son->pid);
 		fputc('\n', stdout);
-		return 0;
+		return 1;
 	}
 	else {
 		/* Get the system call number and call
@@ -264,7 +266,7 @@ handle_syscall(struct child *son)
 			printf("%s()", scname);
 		
 		
-		return 1;
+		return 0;
 	}
 }
 
@@ -404,7 +406,7 @@ main(int argc, char **argv)
 		case PINK_EVENT_SYSCALL:
 
 		  result = handle_syscall(&son);
-		  printf("result is %d\n", result);
+		  //printf("result is %d\n", result);
 		  break;
 		  break;
 
@@ -423,6 +425,7 @@ main(int argc, char **argv)
 		  /* Send the signal to the traced child as it
 		   * was a genuine signal.
 		   */
+		  printf("UNKNOWN\n");
 		  sig = WSTOPSIG(status);
 		  break;
 		case PINK_EVENT_EXIT_GENUINE:
@@ -442,7 +445,7 @@ main(int argc, char **argv)
 		  break;
 		default:
 		  /* Nothing */
-		  ;
+		  printf("default\n");
 		}
 		if (son.dead)
 		  break;
