@@ -211,7 +211,7 @@ decode_socketcall(pid_t pid, pink_bitness_t bitness, const char *scname)
 	printf(", %u)", addr.length);
 }
 
-static void
+static int
 handle_syscall(struct child *son)
 {
 	long scno;
@@ -219,12 +219,12 @@ handle_syscall(struct child *son)
 
 	if (!pink_util_get_syscall(son->pid, son->bitness, &scno)) {
 	  perror("pink_util_get_syscall");
-	  return;
+	  return 0;
 	}
 
 	scname = pink_name_syscall(scno, son->bitness);
 	if(!syscalls.empty() && !syscalls.count(scname)){
-	  return;
+	  return 0;
 	}
 	/* We get this event twice, one at entering a
 	 * system call and one at exiting a system
@@ -238,13 +238,12 @@ handle_syscall(struct child *son)
 		fputc(' ', stdout);
 		print_ret(son->pid);
 		fputc('\n', stdout);
+		return 0;
 	}
 	else {
 		/* Get the system call number and call
 		 * the appropriate decoder. */
 		son->insyscall = true;
-		string res = get_callchain_id(son->pid);
-		callsites.insert(res);
 		
 		if (!scname)
 			printf("%ld()", scno);
@@ -256,7 +255,11 @@ handle_syscall(struct child *son)
 			decode_socketcall(son->pid, son->bitness, scname);
 		else
 			printf("%s()", scname);
-
+		
+		string res = get_callchain_id(son->pid);
+		callsites.insert(res);
+		
+		return 1;
 	}
 }
 
@@ -273,7 +276,7 @@ main(int argc, char **argv)
 	struct child son;
 	char *syscall_file = NULL;
 	int option = 0;
-
+	int result = 0;
 	while ((option = getopt(argc, argv,"s:")) != -1) {
 	  switch (option) {
 	  case 's' : syscall_file = optarg;
@@ -367,9 +370,18 @@ main(int argc, char **argv)
 		/* At this point the traced child is stopped and needs
 		 * to be resumed.
 		 */
-		if (!pink_trace_syscall(son.pid, sig)) {
-		  perror("pink_trace_syscall");
-		  return (errno == ESRCH) ? 0 : 1;
+		if(!result){
+		  if (!pink_trace_syscall(son.pid, sig)) {
+		    perror("pink_trace_syscall");
+		    return (errno == ESRCH) ? 0 : 1;
+		  }
+		}
+		else{
+		  printf("Syscall recorded on first run...we continue now\n");
+		  if(!pink_trace_cont(son.pid, sig, NULL)){
+		    perror("pink_trace_cont");
+		    return (errno == ESRCH) ? 0 : 1;
+		  }
 		}
 		sig = 0;
 		
@@ -384,7 +396,8 @@ main(int argc, char **argv)
 		switch (event) {
 		case PINK_EVENT_SYSCALL:
 
-		  handle_syscall(&son);
+		  result = handle_syscall(&son);
+		  printf("result is %d\n", result);
 		  break;
 		  break;
 
@@ -410,13 +423,14 @@ main(int argc, char **argv)
 		  exit_code = WEXITSTATUS(status);
 		  printf("Child %i exited normally with return code %d\n",
 			 son.pid, exit_code);
-
+		  result = 0;
 		  son.dead = true;
 		  break;
 		case PINK_EVENT_EXIT_SIGNAL:
 		  exit_code = 128 + WTERMSIG(status);
 		  printf("Child %i exited with signal %d\n",
 			 son.pid, WTERMSIG(status));
+		  result = 0;
 		  son.dead = true;
 		  break;
 		default:
