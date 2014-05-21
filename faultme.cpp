@@ -329,14 +329,24 @@ main(int argc, char **argv)
 	      
 	      //++argv;
 	      personality(ADDR_NO_RANDOMIZE);
-	      int fd = open("/dev/null",O_RDWR);
+	      char *filename = (char *) malloc(2000);
+	      time_t rawtime;
+	      struct tm * timeinfo;
+
+	      time (&rawtime);
+	      timeinfo = localtime (&rawtime);
+
+	      strftime (filename,2000,"output_%F_%I%M%p",timeinfo);
+
+	      int fd = open(filename,O_RDWR | O_APPEND | O_CREAT, 0666);
 	      if(fd == -1){
 		perror("couldn't open /dev/null\n");
 		_exit(EXIT_FAILURE);
 	      }
 	      /* handle failure of open() somehow */ 
+	      write(fd,"--CHILD--\n", 11);
 	      dup2(fd,1); 
-	      dup2(fd,2); 
+	      dup2(fd,2);
 	      execvp(argv[optind], &argv[optind]);
 	      perror("execvp");
 	      _exit(-1);
@@ -387,6 +397,7 @@ main(int argc, char **argv)
 		}
 		else{
 		  printf("Syscall recorded on first run...we continue now\n");
+		  //if (!pink_trace_syscall(son.pid, sig)) {
 		  if(!pink_trace_cont(son.pid, sig, NULL)){
 		    perror("pink_trace_cont");
 		    return (errno == ESRCH) ? 0 : 1;
