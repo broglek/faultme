@@ -282,6 +282,7 @@ main(int argc, char **argv)
 	char *syscall_file = NULL;
 	int option = 0;
 	int result = 0;
+	int callsites_tracked = 0;
 	while ((option = getopt(argc, argv,"s:")) != -1) {
 	  switch (option) {
 	  case 's' : syscall_file = optarg;
@@ -308,8 +309,9 @@ main(int argc, char **argv)
 
 
 	/* Parse arguments */
-	while (x < 5){
+	while (callsites_tracked == 0 || callsites_tracked != callsites.size()){
 	    /* Fork */
+	  callsites_tracked = callsites.size();
 	    if ((son.pid = fork()) < 0) {
 	      perror("fork");
 	      return EXIT_FAILURE;
