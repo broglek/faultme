@@ -340,13 +340,14 @@ main(int argc, char **argv)
 
 	      int fd = open(filename,O_RDWR | O_APPEND | O_CREAT, 0666);
 	      if(fd == -1){
-		perror("couldn't open /dev/null\n");
+		perror("couldn't open output file\n");
 		_exit(EXIT_FAILURE);
 	      }
+	      free(filename);
 	      /* handle failure of open() somehow */ 
 	      write(fd,"--CHILD--\n", 11);
-	      dup2(fd,1); 
-	      dup2(fd,2);
+	      //dup2(fd,1); 
+	      //dup2(fd,2);
 	      execvp(argv[optind], &argv[optind]);
 	      perror("execvp");
 	      _exit(-1);
