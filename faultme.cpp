@@ -226,6 +226,13 @@ handle_syscall(struct child *son)
 	if(!syscalls.empty() && !syscalls.count(scname)){
 	  return 0;
 	}
+
+	string res = get_callchain_id(son->pid);
+	if(callsites.count(res) && !son->insyscall){
+	  return 0;
+	}
+	callsites.insert(res);
+	
 	/* We get this event twice, one at entering a
 	 * system call and one at exiting a system
 	 * call. */
@@ -256,8 +263,6 @@ handle_syscall(struct child *son)
 		else
 			printf("%s()", scname);
 		
-		string res = get_callchain_id(son->pid);
-		callsites.insert(res);
 		
 		return 1;
 	}
