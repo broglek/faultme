@@ -317,6 +317,14 @@ main(int argc, char **argv)
 	      
 	      //++argv;
 	      personality(ADDR_NO_RANDOMIZE);
+	      int fd = open("/dev/null",O_RDWR);
+	      if(fd == -1){
+		perror("couldn't open /dev/null\n");
+		_exit(EXIT_FAILURE);
+	      }
+	      /* handle failure of open() somehow */ 
+	      dup2(fd,1); 
+	      dup2(fd,2); 
 	      execvp(argv[optind], &argv[optind]);
 	      perror("execvp");
 	      _exit(-1);
