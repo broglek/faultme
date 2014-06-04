@@ -15,7 +15,7 @@
 #include <getopt.h>
 #include <pinktrace/pink.h>
 #include "link_locate.h"
-
+#include <asm/ptrace.h>
 #include <iostream>
 #include <fstream>
 #include <set>
@@ -34,6 +34,18 @@ struct child {
 
 set<string> syscalls;
 set<string> callsites;
+
+void corrupt_return(pid_t pid)
+{
+  struct pt_regs *regs = (struct pt_regs *)malloc(sizeof(struct pt_regs) *2);
+  pink_util_get_regs(pid, regs);
+  printf("Old RAX: %ld\n", (long)(regs->rax)); 
+  regs->rax = -1;
+  printf("New RAX: %ld\n", (long)(regs->rax)); 
+  
+  pink_util_set_regs(pid, regs);
+  free(regs);
+}
 
 /* Utility functions */
 static void
@@ -247,6 +259,8 @@ handle_syscall(struct child *son)
 		fputc(' ', stdout);
 		print_ret(son->pid);
 		fputc('\n', stdout);
+		printf("Should corrupt now\n");
+		corrupt_return(son->pid);
 		return 1;
 	}
 	else {
