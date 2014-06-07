@@ -80,6 +80,5 @@ string get_callchain_id(int pid)
   // returns more data than a struct pt_regs can handle :/
   // THANKS PTRACE.  Never forget.
 
-  printf("Hashes to %s\n", md5string);
   return string(md5string);
 }

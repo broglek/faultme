@@ -39,9 +39,9 @@ void corrupt_return(pid_t pid)
 {
   struct pt_regs *regs = (struct pt_regs *)malloc(sizeof(struct pt_regs) *2);
   pink_util_get_regs(pid, regs);
-  printf("Old RAX: %ld\n", (long)(regs->rax)); 
+  //printf("Old RAX: %ld\n", (long)(regs->rax)); 
   regs->rax = -1;
-  printf("New RAX: %ld\n", (long)(regs->rax)); 
+  //printf("New RAX: %ld\n", (long)(regs->rax)); 
   
   pink_util_set_regs(pid, regs);
   free(regs);
@@ -57,11 +57,12 @@ print_ret(pid_t pid)
 		perror("pink_util_get_return");
 		return;
 	}
-
+	/*
 	if (ret >= 0)
-		printf("= %ld", ret);
+	  printf("= %ld", ret);
 	else
-		printf("= %ld (%s)", ret, strerror(-ret));
+	  printf("= %ld (%s)", ret, strerror(-ret));
+	*/
 }
 
 static void
@@ -76,13 +77,13 @@ print_open_flags(long flags)
 	aflags = flags & 3;
 	switch (aflags) {
 	case O_RDONLY:
-		printf("O_RDONLY");
+	  //printf("O_RDONLY");
 		break;
 	case O_WRONLY:
-		printf("O_WRONLY");
+	  //printf("O_WRONLY");
 		break;
 	case O_RDWR:
-		printf("O_RDWR");
+	  //printf("O_RDWR");
 		break;
 	default:
 		/* Nothing found */
@@ -90,12 +91,13 @@ print_open_flags(long flags)
 	}
 
 	if (flags & O_CREAT) {
-		printf("%s | O_CREAT", found ? "" : "0");
+	  //printf("%s | O_CREAT", found ? "" : "0");
 		found = true;
 	}
 
-	if (!found)
+	/*if (!found)
 		printf("%#x", (unsigned)flags);
+	*/
 }
 
 /* A very basic decoder for open(2) system call. */
@@ -114,7 +116,7 @@ decode_open(pid_t pid, pink_bitness_t bitness)
 		return;
 	}
 
-	printf("open(\"%s\", ", buf);
+	//printf("open(\"%s\", ", buf);
 	print_open_flags(flags);
 	fputc(')', stdout);
 }
@@ -138,20 +140,20 @@ decode_execve(pid_t pid, pink_bitness_t bitness)
 		return;
 	}
 
-	printf("execve(\"%s\", [", buf);
+	//printf("execve(\"%s\", [", buf);
 
 	for (i = 0, nil = false, sep = "";;sep = ", ") {
 		if (!pink_decode_string_array_member(pid, bitness, arg, ++i, buf, MAX_STRING_LEN, &nil)) {
 			perror("pink_decode_string_array_member");
 			return;
 		}
-		printf("%s", sep);
+		//printf("%s", sep);
 		fputc('"', stdout);
-		printf("%s", buf);
+		//printf("%s", buf);
 		fputc('"', stdout);
 
 		if (nil) {
-			printf("], envp[])");
+		  //printf("], envp[])");
 			break;
 		}
 	}
@@ -176,7 +178,7 @@ decode_socketcall(pid_t pid, pink_bitness_t bitness, const char *scname)
 	  subname = pink_name_socket_subcall((pink_socket_subcall_t)subcall);
 		if (!(!strcmp(subname, "bind") || !strcmp(subname, "connect"))) {
 			/* Print the name only */
-			printf("%s()", subname);
+			//printf("%s()", subname);
 			return;
 		}
 	}
@@ -190,10 +192,10 @@ decode_socketcall(pid_t pid, pink_bitness_t bitness, const char *scname)
 
 	switch (addr.family) {
 	case -1: /* NULL */
-		printf("NULL");
+	  //printf("NULL");
 		break;
 	case AF_UNIX:
-		printf("{sa_family=AF_UNIX, path=");
+	  //printf("{sa_family=AF_UNIX, path=");
 		path = addr.u.sa_un.sun_path;
 		if (path[0] == '\0' && path[1] != '\0') /* Abstract UNIX socket */
 			printf("\"@%s\"}", ++path);
@@ -242,7 +244,6 @@ handle_syscall(struct child *son)
 	string res = get_callchain_id(son->pid);
 	if(callsites.count(res) && !son->insyscall){
 	 
-	  printf("%s Seen it before\n", scname);
 	  return 0;
 	}
 	callsites.insert(res);
@@ -259,7 +260,6 @@ handle_syscall(struct child *son)
 		fputc(' ', stdout);
 		print_ret(son->pid);
 		fputc('\n', stdout);
-		printf("Should corrupt now\n");
 		corrupt_return(son->pid);
 		return 1;
 	}
@@ -411,8 +411,6 @@ main(int argc, char **argv)
 		  }
 		}
 		else{
-		  printf("Syscall recorded on first run...we continue now\n");
-		  //if (!pink_trace_syscall(son.pid, sig)) {
 		  if(!pink_trace_cont(son.pid, sig, NULL)){
 		    perror("pink_trace_cont");
 		    return (errno == ESRCH) ? 0 : 1;
@@ -478,6 +476,5 @@ main(int argc, char **argv)
 	      }
 	      x++;
 	}	      
-	printf("Had %ld unique callsites\n", callsites.size());
 	return exit_code;	  
 }
