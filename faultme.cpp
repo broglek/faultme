@@ -34,14 +34,13 @@ struct child {
 
 set<string> syscalls;
 set<string> callsites;
+char *syscall_description;
 
 void corrupt_return(pid_t pid)
 {
   struct pt_regs *regs = (struct pt_regs *)malloc(sizeof(struct pt_regs) *2);
   pink_util_get_regs(pid, regs);
-  //printf("Old RAX: %ld\n", (long)(regs->rax)); 
   regs->rax = -1;
-  //printf("New RAX: %ld\n", (long)(regs->rax)); 
   
   pink_util_set_regs(pid, regs);
   free(regs);
@@ -77,13 +76,13 @@ print_open_flags(long flags)
 	aflags = flags & 3;
 	switch (aflags) {
 	case O_RDONLY:
-	  //printf("O_RDONLY");
+	  sprintf(syscall_description + strlen(syscall_description), "O_RDONLY");
 		break;
 	case O_WRONLY:
-	  //printf("O_WRONLY");
+	  sprintf(syscall_description + strlen(syscall_description),"O_WRONLY");
 		break;
 	case O_RDWR:
-	  //printf("O_RDWR");
+	  sprintf(syscall_description + strlen(syscall_description),"O_RDWR");
 		break;
 	default:
 		/* Nothing found */
@@ -91,13 +90,13 @@ print_open_flags(long flags)
 	}
 
 	if (flags & O_CREAT) {
-	  //printf("%s | O_CREAT", found ? "" : "0");
+	  snprintf(syscall_description + strlen(syscall_description), 2000, "%s | O_CREAT", found ? "" : "0");
 		found = true;
 	}
 
-	/*if (!found)
-		printf("%#x", (unsigned)flags);
-	*/
+	if (!found)
+	  snprintf(syscall_description + strlen(syscall_description), 2000, "%#x", (unsigned)flags);
+	
 }
 
 /* A very basic decoder for open(2) system call. */
@@ -116,9 +115,9 @@ decode_open(pid_t pid, pink_bitness_t bitness)
 		return;
 	}
 
-	//printf("open(\"%s\", ", buf);
+	snprintf(syscall_description + strlen(syscall_description), 2000, "open(\"%s\", ", buf);
 	print_open_flags(flags);
-	fputc(')', stdout);
+	snprintf(syscall_description + strlen(syscall_description), 2000, ")");
 }
 
 /* A very basic decoder for execve(2) system call. */
@@ -140,20 +139,20 @@ decode_execve(pid_t pid, pink_bitness_t bitness)
 		return;
 	}
 
-	//printf("execve(\"%s\", [", buf);
+	snprintf(syscall_description + strlen(syscall_description), 2000, "execve(\"%s\", [", buf);
 
 	for (i = 0, nil = false, sep = "";;sep = ", ") {
 		if (!pink_decode_string_array_member(pid, bitness, arg, ++i, buf, MAX_STRING_LEN, &nil)) {
 			perror("pink_decode_string_array_member");
 			return;
 		}
-		//printf("%s", sep);
-		fputc('"', stdout);
-		//printf("%s", buf);
-		fputc('"', stdout);
+		snprintf(syscall_description + strlen(syscall_description), 2000, "%s", sep);
+		sprintf(syscall_description + strlen(syscall_description), "\"");
+		snprintf(syscall_description + strlen(syscall_description), 2000, "%s", buf);
+		sprintf(syscall_description + strlen(syscall_description), "\"");
 
 		if (nil) {
-		  //printf("], envp[])");
+		  snprintf(syscall_description + strlen(syscall_description), 2000, "], envp[])");
 			break;
 		}
 	}
@@ -178,7 +177,7 @@ decode_socketcall(pid_t pid, pink_bitness_t bitness, const char *scname)
 	  subname = pink_name_socket_subcall((pink_socket_subcall_t)subcall);
 		if (!(!strcmp(subname, "bind") || !strcmp(subname, "connect"))) {
 			/* Print the name only */
-			//printf("%s()", subname);
+		  snprintf(syscall_description + strlen(syscall_description), 2000, "%s()", subname);
 			return;
 		}
 	}
@@ -188,41 +187,41 @@ decode_socketcall(pid_t pid, pink_bitness_t bitness, const char *scname)
 		return;
 	}
 
-	printf("%s(%ld, ", (subcall > 0) ? subname : scname, fd);
+	snprintf(syscall_description + strlen(syscall_description), 2000, "%s(%ld, ", (subcall > 0) ? subname : scname, fd);
 
 	switch (addr.family) {
 	case -1: /* NULL */
-	  //printf("NULL");
+	  snprintf(syscall_description + strlen(syscall_description), 2000, "NULL");
 		break;
 	case AF_UNIX:
-	  //printf("{sa_family=AF_UNIX, path=");
+	  snprintf(syscall_description + strlen(syscall_description), 2000, "{sa_family=AF_UNIX, path=");
 		path = addr.u.sa_un.sun_path;
 		if (path[0] == '\0' && path[1] != '\0') /* Abstract UNIX socket */
-			printf("\"@%s\"}", ++path);
+		  snprintf(syscall_description + strlen(syscall_description), 2000, "\"@%s\"}", ++path);
 		else
-			printf("\"%s\"}", path);
+		  snprintf(syscall_description + strlen(syscall_description), 2000, "\"%s\"}", path);
 		break;
 	case AF_INET:
 		inet_ntop(AF_INET, &addr.u.sa_in.sin_addr, ip, sizeof(ip));
-		printf("{sa_family=AF_INET, sin_port=htons(%d), sin_addr=inet_addr(\"%s\")}", ntohs(addr.u.sa_in.sin_port), ip);
+		snprintf(syscall_description + strlen(syscall_description), 2000, "{sa_family=AF_INET, sin_port=htons(%d), sin_addr=inet_addr(\"%s\")}", ntohs(addr.u.sa_in.sin_port), ip);
 		break;
 #if PINKTRACE_HAVE_IPV6
 	case AF_INET6:
 		inet_ntop(AF_INET6, &addr.u.sa6.sin6_addr, ip, sizeof(ip));
-		printf("{sa_family=AF_INET6, sin_port=htons(%d), sin6_addr=inet_addr(\"%s\")}", ntohs(addr.u.sa6.sin6_port), ip);
+		snprintf(syscall_description + strlen(syscall_description), 2000, "{sa_family=AF_INET6, sin_port=htons(%d), sin6_addr=inet_addr(\"%s\")}", ntohs(addr.u.sa6.sin6_port), ip);
 		break;
 #endif /* PINKTRACE_HAVE_IPV6 */
 #if PINKTRACE_HAVE_NETLINK
 	case AF_NETLINK:
-		printf("{sa_family=AF_NETLINK, nl_pid=%d, nl_groups=%08x}", addr.u.nl.nl_pid, addr.u.nl.nl_groups);
+	  snprintf(syscall_description + strlen(syscall_description), 2000, "{sa_family=AF_NETLINK, nl_pid=%d, nl_groups=%08x}", addr.u.nl.nl_pid, addr.u.nl.nl_groups);
 		break;
 #endif /* PINKTRACE_HAVE_NETLINK */
 	default: /* Unknown family */
-		printf("{sa_family=???}");
+	  snprintf(syscall_description + strlen(syscall_description), 2000, "{sa_family=???}");
 		break;
 	}
 
-	printf(", %u)", addr.length);
+	snprintf(syscall_description + strlen(syscall_description), 2000, ", %u)", addr.length);
 }
 
 static int
@@ -257,9 +256,9 @@ handle_syscall(struct child *son)
 
 	  
 		son->insyscall = false;
-		fputc(' ', stdout);
+		strcat(syscall_description," ");
 		print_ret(son->pid);
-		fputc('\n', stdout);
+		strcat(syscall_description, "\n");
 		corrupt_return(son->pid);
 		return 1;
 	}
@@ -269,7 +268,7 @@ handle_syscall(struct child *son)
 		son->insyscall = true;
 		
 		if (!scname)
-			printf("%ld()", scno);
+		  snprintf(syscall_description + strlen(syscall_description), 2000, "%ld()", scno);
 		else if (!strcmp(scname, "open"))
 			decode_open(son->pid, son->bitness);
 		else if (!strcmp(scname, "execve"))
@@ -277,7 +276,7 @@ handle_syscall(struct child *son)
 		else if (!strcmp(scname, "socketcall") || !strcmp(scname, "bind") || !strcmp(scname, "connect"))
 			decode_socketcall(son->pid, son->bitness, scname);
 		else
-			printf("%s()", scname);
+		  snprintf(syscall_description + strlen(syscall_description), 2000, "%s()", scname);
 		
 		
 		return 0;
@@ -299,6 +298,7 @@ main(int argc, char **argv)
 	int option = 0;
 	int result = 0;
 	int callsites_tracked = 0;
+	syscall_description = (char *) malloc(2000);
 	while ((option = getopt(argc, argv,"s:")) != -1) {
 	  switch (option) {
 	  case 's' : syscall_file = optarg;
@@ -345,6 +345,7 @@ main(int argc, char **argv)
 
 	while (callsites_tracked == 0 || callsites_tracked != callsites.size()){
 	    /* Fork */
+	  memset(syscall_description, 0, 2000);
 	  callsites_tracked = callsites.size();
 	    if ((son.pid = fork()) < 0) {
 	      perror("fork");
@@ -396,7 +397,7 @@ main(int argc, char **argv)
 	      son.bitness = pink_bitness_get(son.pid);
 	      if (son.bitness == PINK_BITNESS_UNKNOWN)
 		err(EXIT_FAILURE, "pink_bitness_get");
-	      printf("Child %i runs in %s mode\n", son.pid, pink_bitness_name(son.bitness));
+	      //printf("Child %i runs in %s mode\n", son.pid, pink_bitness_name(son.bitness));
 	      
 	      son.dead = son.insyscall = false;
 	      sig = exit_code = 0;
@@ -437,7 +438,6 @@ main(int argc, char **argv)
 		case PINK_EVENT_SYSCALL:
 
 		  result = handle_syscall(&son);
-		  //printf("result is %d\n", result);
 		  break;
 		  break;
 
@@ -447,8 +447,8 @@ main(int argc, char **argv)
 		  if (son.bitness == PINK_BITNESS_UNKNOWN)
 		    err(EXIT_FAILURE, "pink_bitness_get");
 		  else
-		    printf(" (Updating the bitness of child %i to %s mode)\n",
-			   son.pid, pink_bitness_name(son.bitness));
+		    //printf(" (Updating the bitness of child %i to %s mode)\n",
+		    //   son.pid, pink_bitness_name(son.bitness));
 
 		  break;
 		case PINK_EVENT_GENUINE:
@@ -463,8 +463,9 @@ main(int argc, char **argv)
 
 		  exit_code = WEXITSTATUS(status);
 		  printf("Child %i exited normally with return code %d\n",
-			 son.pid, exit_code);
+			 childCount, exit_code);
 		  result = 0;
+		  printf("%s\n", syscall_description);
 		  son.dead = true;
 		  break;
 		case PINK_EVENT_EXIT_SIGNAL:
@@ -484,5 +485,6 @@ main(int argc, char **argv)
 	      x++;
 	      childCount++;
 	}	      
+	free(syscall_description);
 	return exit_code;	  
 }
