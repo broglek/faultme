@@ -1,5 +1,4 @@
 #include "util.h"
-//#include <asm/ptrace.h>
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
 #include <errno.h>
@@ -49,8 +48,9 @@ string get_callchain_id(int pid)
 
   unw_addr_space_t aspace = unw_create_addr_space(&_UPT_accessors, 0);
   void *upt_info = _UPT_create(pid);
-  unw_word_t ip, sp;
+  unw_word_t ip, sp, offset;
   unw_cursor_t cursor;
+  char *symbol_name = (char *) malloc(2000);
 
   unw_init_remote(&cursor, aspace, upt_info);
 
@@ -65,8 +65,9 @@ string get_callchain_id(int pid)
     {
       unw_get_reg(&cursor, UNW_REG_IP, &ip);
       unw_get_reg(&cursor, UNW_REG_SP, &sp);
+      unw_get_proc_name(&cursor, symbol_name, 2000, &offset); 
       MD5_Update(&md5, &ip, sizeof(unw_word_t));
-      //printf ("ip=%016lx sp=%016lx\n", ip, sp);
+      printf ("ip=%016lx sp=%016lx (%s)\n", ip, sp, symbol_name);
     }
   while (rr = unw_step (&cursor) > 0);
   _UPT_destroy(upt_info);
@@ -79,6 +80,6 @@ string get_callchain_id(int pid)
   // *apparently* PTRACE_GETREGS on x64 
   // returns more data than a struct pt_regs can handle :/
   // THANKS PTRACE.  Never forget.
-
+  free(symbol_name);
   return string(md5string);
 }

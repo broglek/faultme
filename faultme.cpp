@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <err.h>
+#include <bfd.h>
 #include <errno.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
@@ -19,6 +20,7 @@
 #include <iostream>
 #include <fstream>
 #include <set>
+#include <map>
 #include <string.h>
 using namespace std;
 
@@ -34,6 +36,8 @@ struct child {
 
 set<string> syscalls;
 set<string> callsites;
+map<string, unsigned long> symbols;
+
 char *syscall_description;
 
 void corrupt_return(pid_t pid)
@@ -97,6 +101,14 @@ print_open_flags(long flags)
 	if (!found)
 	  snprintf(syscall_description + strlen(syscall_description), 2000, "%#x", (unsigned)flags);
 	
+}
+
+void print_symbols()
+{
+  map<string, unsigned long>::iterator iter;
+  for (iter = symbols.begin(); iter != symbols.end(); ++iter) {
+    printf("Symbol: %s at %lu\n", iter->first.c_str(), iter->second);
+  }
 }
 
 /* A very basic decoder for open(2) system call. */
@@ -322,6 +334,24 @@ main(int argc, char **argv)
 	    infile.close();
 	  }
 	}
+
+	long nsym;
+	long size;
+	asymbol **asymtab;
+	
+	bfd_init();
+	bfd *abfd = bfd_openr(argv[optind], NULL);
+ 
+	bfd_check_format(abfd, bfd_object);
+	size = bfd_get_symtab_upper_bound(abfd);
+	asymtab = (asymbol **) malloc(size);
+	nsym = bfd_canonicalize_symtab(abfd, asymtab);
+
+	for (int i = 0; i < nsym; i++) {
+	  symbols.insert(pair<string, unsigned long>(bfd_asymbol_name(asymtab[i]), bfd_asymbol_value(asymtab[i])));
+	}
+
+	print_symbols();
 
 	char *filename = (char *) malloc(2000);
 	time_t rawtime;
