@@ -330,7 +330,7 @@ main(int argc, char **argv)
 	time (&rawtime);
 	timeinfo = localtime (&rawtime);
 	
-	strftime (filename,2000,"output_%F_%I%M%p",timeinfo);
+	strftime (filename,2000,"output_%F_%I%M%S%p",timeinfo);
 	
 	int fd = open(filename,O_RDWR | O_APPEND | O_CREAT, 0666);
 	if(fd == -1){
@@ -446,9 +446,6 @@ main(int argc, char **argv)
 		  son.bitness = pink_bitness_get(son.pid);
 		  if (son.bitness == PINK_BITNESS_UNKNOWN)
 		    err(EXIT_FAILURE, "pink_bitness_get");
-		  else
-		    //printf(" (Updating the bitness of child %i to %s mode)\n",
-		    //   son.pid, pink_bitness_name(son.bitness));
 
 		  break;
 		case PINK_EVENT_GENUINE:
@@ -462,16 +459,21 @@ main(int argc, char **argv)
 		case PINK_EVENT_EXIT_GENUINE:
 
 		  exit_code = WEXITSTATUS(status);
-		  printf("Child %i exited normally with return code %d\n",
-			 childCount, exit_code);
+		  if(exit_code){
+		    printf("Child %i exited normally with return code %d\n",
+			   childCount, exit_code);
+		 
+		    printf("Syscall faulted: %s\n", syscall_description);
+		  }
 		  result = 0;
-		  printf("%s\n", syscall_description);
 		  son.dead = true;
 		  break;
 		case PINK_EVENT_EXIT_SIGNAL:
 		  exit_code = 128 + WTERMSIG(status);
 		  printf("Child %i exited with signal %d\n",
 			 son.pid, WTERMSIG(status));
+		  
+		  printf("Syscall faulted: %s\n", syscall_description);
 		  result = 0;
 		  son.dead = true;
 		  break;
