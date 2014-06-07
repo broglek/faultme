@@ -323,8 +323,26 @@ main(int argc, char **argv)
 	  }
 	}
 
+	char *filename = (char *) malloc(2000);
+	time_t rawtime;
+	struct tm * timeinfo;
+	
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
+	
+	strftime (filename,2000,"output_%F_%I%M%p",timeinfo);
+	
+	int fd = open(filename,O_RDWR | O_APPEND | O_CREAT, 0666);
+	if(fd == -1){
+	  perror("couldn't open output file\n");
+	  _exit(EXIT_FAILURE);
+	}
+	free(filename);
+
 
 	/* Parse arguments */
+	int childCount = 0;
+
 	while (callsites_tracked == 0 || callsites_tracked != callsites.size()){
 	    /* Fork */
 	  callsites_tracked = callsites.size();
@@ -343,25 +361,14 @@ main(int argc, char **argv)
 	      
 	      //++argv;
 	      personality(ADDR_NO_RANDOMIZE);
-	      char *filename = (char *) malloc(2000);
-	      time_t rawtime;
-	      struct tm * timeinfo;
-
-	      time (&rawtime);
-	      timeinfo = localtime (&rawtime);
-
-	      strftime (filename,2000,"output_%F_%I%M%p",timeinfo);
-
-	      int fd = open(filename,O_RDWR | O_APPEND | O_CREAT, 0666);
-	      if(fd == -1){
-		perror("couldn't open output file\n");
-		_exit(EXIT_FAILURE);
-	      }
-	      free(filename);
+	     
+	      FILE *file = fdopen(fd, "w+");
 	      /* handle failure of open() somehow */ 
-	      write(fd,"--CHILD--\n", 11);
-	      //dup2(fd,1); 
-	      //dup2(fd,2);
+	      fprintf(file, "-- CHILD %d -- \n", childCount);
+	      fflush(file);
+	      //fclose(file);
+	      dup2(fd,1); 
+	      dup2(fd,2);
 	      execvp(argv[optind], &argv[optind]);
 	      perror("execvp");
 	      _exit(-1);
@@ -475,6 +482,7 @@ main(int argc, char **argv)
 		  break;
 	      }
 	      x++;
+	      childCount++;
 	}	      
 	return exit_code;	  
 }
