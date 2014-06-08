@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <err.h>
-#include <bfd.h>
 #include <errno.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
@@ -22,6 +21,9 @@
 #include <set>
 #include <map>
 #include <string.h>
+#include <libunwind.h>
+#include <libunwind-ptrace.h>
+
 using namespace std;
 
 #define MAX_STRING_LEN 128
@@ -36,7 +38,6 @@ struct child {
 
 set<string> syscalls;
 set<string> callsites;
-map<string, unsigned long> symbols;
 
 char *syscall_description;
 
@@ -48,6 +49,29 @@ void corrupt_return(pid_t pid)
   
   pink_util_set_regs(pid, regs);
   free(regs);
+}
+
+void perform_backtrace(int pid)
+{
+  unw_addr_space_t aspace = unw_create_addr_space(&_UPT_accessors, 0);
+  void *upt_info = _UPT_create(pid);
+  unw_word_t ip, sp, offset;
+  unw_cursor_t cursor;
+  char *symbol_name = (char *) malloc(2000);
+
+  unw_init_remote(&cursor, aspace, upt_info);
+  
+  int rr = 0;
+  do
+    {
+      unw_get_reg(&cursor, UNW_REG_IP, &ip);
+      unw_get_reg(&cursor, UNW_REG_SP, &sp);
+      unw_get_proc_name(&cursor, symbol_name, 2000, &offset); 
+      printf ("ip=%016lx sp=%016lx (%s)\n", ip, sp, symbol_name);
+    }
+  while (rr = unw_step (&cursor) > 0);
+  _UPT_destroy(upt_info);
+  free(symbol_name);
 }
 
 /* Utility functions */
@@ -101,14 +125,6 @@ print_open_flags(long flags)
 	if (!found)
 	  snprintf(syscall_description + strlen(syscall_description), 2000, "%#x", (unsigned)flags);
 	
-}
-
-void print_symbols()
-{
-  map<string, unsigned long>::iterator iter;
-  for (iter = symbols.begin(); iter != symbols.end(); ++iter) {
-    printf("Symbol: %s at %lu\n", iter->first.c_str(), iter->second);
-  }
 }
 
 /* A very basic decoder for open(2) system call. */
@@ -335,24 +351,6 @@ main(int argc, char **argv)
 	  }
 	}
 
-	long nsym;
-	long size;
-	asymbol **asymtab;
-	
-	bfd_init();
-	bfd *abfd = bfd_openr(argv[optind], NULL);
- 
-	bfd_check_format(abfd, bfd_object);
-	size = bfd_get_symtab_upper_bound(abfd);
-	asymtab = (asymbol **) malloc(size);
-	nsym = bfd_canonicalize_symtab(abfd, asymtab);
-
-	for (int i = 0; i < nsym; i++) {
-	  symbols.insert(pair<string, unsigned long>(bfd_asymbol_name(asymtab[i]), bfd_asymbol_value(asymtab[i])));
-	}
-
-	print_symbols();
-
 	char *filename = (char *) malloc(2000);
 	time_t rawtime;
 	struct tm * timeinfo;
@@ -504,6 +502,7 @@ main(int argc, char **argv)
 			 son.pid, WTERMSIG(status));
 		  
 		  printf("Syscall faulted: %s\n", syscall_description);
+		  perform_backtrace(son.pid);
 		  result = 0;
 		  son.dead = true;
 		  break;
