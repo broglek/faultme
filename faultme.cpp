@@ -481,7 +481,8 @@ main(int argc, char **argv)
 		  /* Send the signal to the traced child as it
 		   * was a genuine signal.
 		   */
-		  printf("UNKNOWN\n");
+		  //printf("UNKNOWN\n");
+		  perform_backtrace(son.pid);
 		  sig = WSTOPSIG(status);
 		  break;
 		case PINK_EVENT_EXIT_GENUINE:
@@ -502,7 +503,7 @@ main(int argc, char **argv)
 			 son.pid, WTERMSIG(status));
 		  
 		  printf("Syscall faulted: %s\n", syscall_description);
-		  perform_backtrace(son.pid);
+		  //perform_backtrace(son.pid);
 		  result = 0;
 		  son.dead = true;
 		  break;
