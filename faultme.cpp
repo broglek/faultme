@@ -14,7 +14,6 @@
 #include <link.h>
 #include <getopt.h>
 #include <pinktrace/pink.h>
-#include "link_locate.h"
 #include <asm/ptrace.h>
 #include <iostream>
 #include <fstream>
@@ -23,6 +22,7 @@
 #include <string.h>
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
+#include "util.h"
 
 using namespace std;
 
@@ -429,11 +429,6 @@ main(int argc, char **argv)
 	      
 	      son.dead = son.insyscall = false;
 	      sig = exit_code = 0;
-
-
-	      struct link_map *map = locate_linkmap(son.pid);
-	      resolv_tables(son.pid, map, &symtab, &strtab, &nchains);
-	      unsigned long addr = find_sym_in_tables(son.pid, map, "malloc", symtab, strtab, nchains);
 
 
 	      for (;;) {
