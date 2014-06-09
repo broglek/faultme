@@ -23,6 +23,7 @@
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
 #include "util.h"
+#include <sstream>
 
 using namespace std;
 
@@ -40,6 +41,7 @@ set<string> syscalls;
 set<string> callsites;
 
 char *syscall_description;
+stringstream syscall_backtrace;
 
 void corrupt_return(pid_t pid)
 {
@@ -287,6 +289,29 @@ handle_syscall(struct child *son)
 		strcat(syscall_description," ");
 		print_ret(son->pid);
 		strcat(syscall_description, "\n");
+		//syscall_backtrace
+
+		unw_addr_space_t aspace = unw_create_addr_space(&_UPT_accessors, 0);
+		void *upt_info = _UPT_create(son->pid);
+		unw_word_t ip, sp, offset;
+		unw_cursor_t cursor;
+		char *symbol_name = (char *) malloc(2000);
+		
+		unw_init_remote(&cursor, aspace, upt_info);
+		
+		int rr = 0;
+		do
+		  {
+		    unw_get_reg(&cursor, UNW_REG_IP, &ip);
+		    unw_get_reg(&cursor, UNW_REG_SP, &sp);
+		    unw_get_proc_name(&cursor, symbol_name, 2000, &offset); 
+		    //printf ("ip=0x%016lx sp=0x%016lx (%s + 0x%lx)\n", ip, sp, symbol_name, offset);
+		    syscall_backtrace << "ip=0x" << hex << ip << " sp=0x" << sp << " (" << symbol_name << " + 0x" << offset << ")\n";
+		  }
+		while (rr = unw_step (&cursor) > 0);
+		_UPT_destroy(upt_info);
+		free(symbol_name);
+
 		corrupt_return(son->pid);
 		return 1;
 	}
@@ -375,6 +400,8 @@ main(int argc, char **argv)
 	    /* Fork */
 	  memset(syscall_description, 0, 2000);
 	  callsites_tracked = callsites.size();
+	  syscall_backtrace.str("");
+		
 	    if ((son.pid = fork()) < 0) {
 	      perror("fork");
 	      return EXIT_FAILURE;
@@ -488,6 +515,9 @@ main(int argc, char **argv)
 			   childCount, exit_code);
 		 
 		    printf("Syscall faulted: %s\n", syscall_description);
+		    printf("Syscall backtrace: \n %s", syscall_backtrace.str().c_str());
+		    
+		    printf("-------------------------\n");
 		  }
 		  result = 0;
 		  son.dead = true;
@@ -495,12 +525,14 @@ main(int argc, char **argv)
 		case PINK_EVENT_EXIT_SIGNAL:
 		  exit_code = 128 + WTERMSIG(status);
 		  printf("Child %i exited with signal %d\n",
-			 son.pid, WTERMSIG(status));
+			 childCount, WTERMSIG(status));
 		  
 		  printf("Syscall faulted: %s\n", syscall_description);
 		  //perform_backtrace(son.pid);
+		  printf("Syscall backtrace: \n %s", syscall_backtrace.str().c_str());
 		  result = 0;
 		  son.dead = true;
+		  printf("-------------------------\n");
 		  break;
 		default:
 		  /* Nothing */
