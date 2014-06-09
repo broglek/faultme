@@ -67,7 +67,7 @@ void perform_backtrace(int pid)
       unw_get_reg(&cursor, UNW_REG_IP, &ip);
       unw_get_reg(&cursor, UNW_REG_SP, &sp);
       unw_get_proc_name(&cursor, symbol_name, 2000, &offset); 
-      printf ("ip=%016lx sp=%016lx (%s)\n", ip, sp, symbol_name);
+      printf ("ip=0x%016lx sp=0x%016lx (%s + 0x%lx)\n", ip, sp, symbol_name, offset);
     }
   while (rr = unw_step (&cursor) > 0);
   _UPT_destroy(upt_info);
